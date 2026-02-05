@@ -23,6 +23,4 @@ Visualização interativa de 795.211 filiados distribuídos em 47 cidades.
 
 05/02/2026
 
-## 📞 Contato
 
-Para dúvidas: seuemail@empresa.com

@@ -1,0 +1,506 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Calor - Filiados Centro-Sul</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 15px;
+            opacity: 0.9;
+        }
+        
+        .container {
+            display: flex;
+            height: calc(100vh - 120px);
+        }
+        
+        #map {
+            flex: 1;
+            height: 100%;
+        }
+        
+        .sidebar {
+            width: 400px;
+            background: white;
+            padding: 25px;
+            overflow-y: auto;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .stats {
+            margin-bottom: 30px;
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .stat-card.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .stat-card h3 {
+            font-size: 12px;
+            margin-bottom: 8px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-card .number {
+            font-size: 32px;
+            font-weight: bold;
+        }
+        
+        .controls {
+            margin-bottom: 25px;
+        }
+        
+        .controls h3 {
+            font-size: 17px;
+            margin-bottom: 12px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .toggle-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .toggle-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .toggle-btn:not(.active) {
+            background: #e0e0e0;
+            color: #666;
+        }
+        
+        .toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .top-list {
+            background: #f9f9f9;
+            padding: 18px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .top-list h3 {
+            font-size: 17px;
+            margin-bottom: 15px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .top-item {
+            background: white;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+            font-size: 13px;
+        }
+        
+        .top-item .city {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+        
+        .top-item .details {
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .top-item .count {
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .insights {
+            background: #fff3cd;
+            padding: 18px;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .insights h3 {
+            font-size: 17px;
+            margin-bottom: 12px;
+            color: #856404;
+            font-weight: 600;
+        }
+        
+        .insights ul {
+            list-style: none;
+            font-size: 13px;
+            color: #856404;
+            line-height: 1.6;
+        }
+        
+        .insights li {
+            margin-bottom: 10px;
+            padding-left: 25px;
+            position: relative;
+        }
+        
+        .insights li:before {
+            content: "💡";
+            position: absolute;
+            left: 0;
+        }
+        
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            font-size: 12px;
+        }
+        
+        .legend h4 {
+            margin-bottom: 10px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .legend-item {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .legend-circle {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🗺️ Mapa de Calor - Região Centro-Sul</h1>
+        <p>Análise de <strong>795,211</strong> filiados distribuídos em <strong>47</strong> cidades | Gerado em 03/02/2026 às 14:54</p>
+    </div>
+    
+    <div class="container">
+        <div id="map"></div>
+        
+        <div class="sidebar">
+            <div class="stats">
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <h3>Cidades</h3>
+                        <div class="number">47</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Raízes CEP</h3>
+                        <div class="number">2089</div>
+                    </div>
+                </div>
+                <div class="stat-card full-width">
+                    <h3>Total de Filiados</h3>
+                    <div class="number">795,211</div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <h3>Visualização</h3>
+                <button class="toggle-btn active" id="toggle-heatmap">Mapa de Calor</button>
+                <button class="toggle-btn active" id="toggle-circles">Círculos Proporcionais</button>
+                <button class="toggle-btn active" id="toggle-labels">Rótulos das Cidades</button>
+            </div>
+            
+            <div class="top-list">
+                <h3>🏆 Top 15 Cidades</h3>
+                
+                <div class="top-item">
+                    <div class="city">Curitiba</div>
+                    <div class="details"><span class="count">42,212 filiados</span> • 361 raízes de CEP</div>
+                </div>
+                
+                <div class="top-item">
+                    <div class="city">PORTO ALEGRE</div>
+                    <div class="details"><span class="count">36,815 filiados</span> • 305 raízes de CEP</div>
+                </div>
+                
+                <div class="top-item">
+                    <div class="city">Caxias do Sul</div>
+                    <div class="details"><span class="count">34,676 filiados</span> • 63 raízes de CEP</div>
+                </div>
+                
+                <div class="top-item">
+                    <div class="city">Canoas</div>
+                    <div class="details"><span class="count">29,529 filiados</span> • 32 raízes de CEP</div>
+                </div>
+                
+                <div class="top-item">
+                    <div class="city">Cascavél</div>
+                    <div class="details"><span class="count">29,103 filiados</span> • 24 raízes de CEP</div>
+                </div>
+                
+                <div class="top-item">
+                    <div class="city">Santa Maria</div>
+                    <div class="details"><span class="count">28,769 filiados</span> • 28 raízes de CEP</div>
+                </div>
+                
+                <div class="top-item">
+                    <div class="city">Joinville</div>
+                    <div class="details"><span class="count">26,463 filiados</span> • 42 raízes de CEP</div>
+                </div>
+                
+                <div class="top-item">
+                    <div class="city">Ponta Grossa</div>
+                    <div class="details"><span class="count">25,178 filiados</span> • 52 raízes de CEP</div>
+                </div>
+                
+                <div class="top-item">
+                    <div class="city">Cuiabá</div>
+                    <div class="details"><span class="count">23,498 filiados</span> • 55 raízes de CEP</div>
+                </div>
+                
+                <div class="top-item">
+                    <div class="city">São Leopoldo</div>
+                    <div class="details"><span class="count">22,681 filiados</span> • 31 raízes de CEP</div>
+                </div>
+                
+                <div class="top-item">
+                    <div class="city">Passo Fundo</div>
+                    <div class="details"><span class="count">22,554 filiados</span> • 34 raízes de CEP</div>
+                </div>
+                
+                <div class="top-item">
+                    <div class="city">Campo Grande</div>
+                    <div class="details"><span class="count">20,554 filiados</span> • 85 raízes de CEP</div>
+                </div>
+                
+                <div class="top-item">
+                    <div class="city">Dourados</div>
+                    <div class="details"><span class="count">20,289 filiados</span> • 42 raízes de CEP</div>
+                </div>
+                
+                <div class="top-item">
+                    <div class="city">Várzea Grande</div>
+                    <div class="details"><span class="count">20,258 filiados</span> • 38 raízes de CEP</div>
+                </div>
+                
+                <div class="top-item">
+                    <div class="city">São José dos Pinhais</div>
+                    <div class="details"><span class="count">20,050 filiados</span> • 39 raízes de CEP</div>
+                </div>
+                
+            </div>
+            
+            <div class="insights">
+                <h3>📊 Próximos Passos</h3>
+                <ul>
+                    <li><strong>Buscar empresas PJ ativas</strong> nas áreas em vermelho/laranja (alta concentração)</li>
+                    <li><strong>Priorizar cidades</strong> com mais de 10.000 filiados para máximo impacto</li>
+                    <li><strong>Usar Brasil.io ou Receita Federal</strong> para dados de CNPJ</li>
+                    <li><strong>Filtrar setores estratégicos:</strong> alimentação, saúde, varejo, combustíveis</li>
+                    <li><strong>Análise de gaps:</strong> identificar regiões com muitos filiados mas poucas parcerias</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script>
+        const dados = [{"cidade": "Alvorada", "franquia": "ALVORADA", "qca": 13429, "amorsaude": 1, "num_ceps": 23, "lat": -29.9897, "lng": -51.0817}, {"cidade": "Apucarana", "franquia": "APUCARANA", "qca": 11600, "amorsaude": 1, "num_ceps": 26, "lat": -23.5508, "lng": -51.4608}, {"cidade": "Arauc\u00e1ria", "franquia": "ARAUCARIA", "qca": 7806, "amorsaude": 1, "num_ceps": 18, "lat": -25.5934, "lng": -49.4076}, {"cidade": "Balne\u00e1rio Cambori\u00fa", "franquia": "BALNEARIO CAMBORIU", "qca": 3669, "amorsaude": 1, "num_ceps": 10, "lat": -26.9906, "lng": -48.635}, {"cidade": "Blumenau", "franquia": "BLUMENAU", "qca": 14801, "amorsaude": 1, "num_ceps": 47, "lat": -26.9194, "lng": -49.0661}, {"cidade": "Brusque", "franquia": "BRUSQUE", "qca": 6794, "amorsaude": 1, "num_ceps": 11, "lat": -27.0987, "lng": -48.9138}, {"cidade": "Campo Grande", "franquia": "CAMPO GRANDE", "qca": 20554, "amorsaude": 1, "num_ceps": 85, "lat": -20.4697, "lng": -54.6201}, {"cidade": "Canoas", "franquia": "CANOAS", "qca": 29529, "amorsaude": 1, "num_ceps": 32, "lat": -29.9177, "lng": -51.1835}, {"cidade": "Cascav\u00e9l", "franquia": "CASCAVEL", "qca": 29103, "amorsaude": 1, "num_ceps": 24, "lat": -24.9555, "lng": -53.4552}, {"cidade": "Caxias do Sul", "franquia": "CAXIAS DO SUL", "qca": 34676, "amorsaude": 1, "num_ceps": 63, "lat": -29.1634, "lng": -51.1797}, {"cidade": "Chapec\u00f3", "franquia": "CHAPECO", "qca": 17595, "amorsaude": 1, "num_ceps": 22, "lat": -27.0965, "lng": -52.6153}, {"cidade": "Colombo", "franquia": "COLOMBO", "qca": 11922, "amorsaude": 1, "num_ceps": 23, "lat": -25.2917, "lng": -49.2242}, {"cidade": "Corn\u00e9lio Proc\u00f3pio", "franquia": "CORNELIO PROCOPIO", "qca": 4092, "amorsaude": 1, "num_ceps": 8, "lat": -23.1807, "lng": -50.6476}, {"cidade": "Crici\u00fama", "franquia": "CRICIUMA", "qca": 15294, "amorsaude": 1, "num_ceps": 27, "lat": -28.6773, "lng": -49.3695}, {"cidade": "Cuiab\u00e1", "franquia": "CUIABA", "qca": 23498, "amorsaude": 1, "num_ceps": 55, "lat": -15.6014, "lng": -56.0979}, {"cidade": "Curitiba", "franquia": "CURITIBA CENTRO", "qca": 42212, "amorsaude": 3, "num_ceps": 361, "lat": -25.4284, "lng": -49.2733}, {"cidade": "C\u00e1ceres", "franquia": "CACERES", "qca": 11019, "amorsaude": 1, "num_ceps": 15, "lat": -16.0735, "lng": -57.6815}, {"cidade": "Dourados", "franquia": "DOURADOS", "qca": 20289, "amorsaude": 1, "num_ceps": 42, "lat": -22.2211, "lng": -54.8056}, {"cidade": "Florian\u00f3polis", "franquia": "FLORIANOPOLIS", "qca": 16084, "amorsaude": 1, "num_ceps": 49, "lat": -27.5954, "lng": -48.548}, {"cidade": "Foz do Igua\u00e7u", "franquia": "FOZ DO IGUACU", "qca": 17458, "amorsaude": 1, "num_ceps": 23, "lat": -25.5478, "lng": -54.5882}, {"cidade": "Gravata\u00ed", "franquia": "GRAVATAI", "qca": 19625, "amorsaude": 1, "num_ceps": 71, "lat": -29.9447, "lng": -50.9921}, {"cidade": "Guarapuava", "franquia": "GUARAPUAVA", "qca": 10824, "amorsaude": 1, "num_ceps": 42, "lat": -25.3906, "lng": -51.4625}, {"cidade": "Itaja\u00ed", "franquia": "ITAJAI", "qca": 17845, "amorsaude": 1, "num_ceps": 26, "lat": -26.9077, "lng": -48.6617}, {"cidade": "Jaragu\u00e1 do Sul", "franquia": "JARAGUA DO SUL", "qca": 13986, "amorsaude": 1, "num_ceps": 21, "lat": -26.4856, "lng": -49.0669}, {"cidade": "Joinville", "franquia": "JOINVILLE", "qca": 26463, "amorsaude": 1, "num_ceps": 42, "lat": -26.3045, "lng": -48.8487}, {"cidade": "Lages", "franquia": "LAGES", "qca": 11412, "amorsaude": 1, "num_ceps": 31, "lat": -27.8157, "lng": -50.3262}, {"cidade": "Londrina", "franquia": "LONDRINA", "qca": 16167, "amorsaude": 1, "num_ceps": 72, "lat": -23.3045, "lng": -51.1696}, {"cidade": "Maring\u00e1", "franquia": "MARINGA", "qca": 19786, "amorsaude": 1, "num_ceps": 39, "lat": -23.4273, "lng": -51.9375}, {"cidade": "Navegantes", "franquia": "ITAJAI", "qca": 9516, "amorsaude": 1, "num_ceps": 8, "lat": -26.8986, "lng": -48.6536}, {"cidade": "Novo Hamburgo", "franquia": "NOVO HAMBURGO", "qca": 17834, "amorsaude": 1, "num_ceps": 35, "lat": -29.6783, "lng": -51.1308}, {"cidade": "PORTO ALEGRE", "franquia": "PORTO ALEGRE CENTRO", "qca": 36815, "amorsaude": 3, "num_ceps": 305, "lat": -30.0346, "lng": -51.2177}, {"cidade": "Parob\u00e9", "franquia": "PAROBE", "qca": 4195, "amorsaude": 1, "num_ceps": 2, "lat": -29.6289, "lng": -50.8347}, {"cidade": "Passo Fundo", "franquia": "PASSO FUNDO", "qca": 22554, "amorsaude": 1, "num_ceps": 34, "lat": -28.2636, "lng": -52.4067}, {"cidade": "Ponta Grossa", "franquia": "PONTA GROSSA", "qca": 25178, "amorsaude": 1, "num_ceps": 52, "lat": -25.0916, "lng": -50.1668}, {"cidade": "Ponta Por\u00e3", "franquia": "PONTA PORA", "qca": 5878, "amorsaude": 1, "num_ceps": 10, "lat": -22.5361, "lng": -55.7256}, {"cidade": "Rondon\u00f3polis", "franquia": "RONDONOPOLIS", "qca": 18529, "amorsaude": 1, "num_ceps": 36, "lat": -16.4709, "lng": -54.6358}, {"cidade": "Santa Maria", "franquia": "SANTA MARIA", "qca": 28769, "amorsaude": 1, "num_ceps": 28, "lat": -29.6842, "lng": -53.8069}, {"cidade": "Sinop", "franquia": "SINOP", "qca": 17012, "amorsaude": 1, "num_ceps": 13, "lat": -11.8642, "lng": -55.5025}, {"cidade": "S\u00e3o Jos\u00e9", "franquia": "SAO JOSE", "qca": 12675, "amorsaude": 1, "num_ceps": 19, "lat": -27.5969, "lng": -48.6336}, {"cidade": "S\u00e3o Jos\u00e9 dos Pinhais", "franquia": "SAO JOSE DOS PINHAIS", "qca": 20050, "amorsaude": 1, "num_ceps": 39, "lat": -25.5304, "lng": -49.2063}, {"cidade": "S\u00e3o Leopoldo", "franquia": "SAO LEOPOLDO", "qca": 22681, "amorsaude": 1, "num_ceps": 31, "lat": -29.7604, "lng": -51.1481}, {"cidade": "Tangar\u00e1 da Serra", "franquia": "TANGARA DA SERRA", "qca": 7116, "amorsaude": 1, "num_ceps": 15, "lat": -14.6219, "lng": -57.4931}, {"cidade": "Toledo", "franquia": "TOLEDO", "qca": 7129, "amorsaude": 1, "num_ceps": 26, "lat": -24.7136, "lng": -53.7428}, {"cidade": "Tr\u00eas Lagoas", "franquia": "TRES LAGOAS", "qca": 8303, "amorsaude": 1, "num_ceps": 23, "lat": -20.7511, "lng": -51.6783}, {"cidade": "Tubar\u00e3o", "franquia": "TUBARAO", "qca": 3940, "amorsaude": 1, "num_ceps": 9, "lat": -28.4664, "lng": -49.007}, {"cidade": "Viam\u00e3o", "franquia": "VIAMAO", "qca": 19247, "amorsaude": 1, "num_ceps": 58, "lat": -30.0811, "lng": -51.0233}, {"cidade": "V\u00e1rzea Grande", "franquia": "VARZEA GRANDE", "qca": 20258, "amorsaude": 2, "num_ceps": 38, "lat": -15.6467, "lng": -56.1326}];
+        
+        // Inicializar mapa
+        const map = L.map('map').setView([-25.069421276595744, -51.626936170212765], 5);
+        
+        // Tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Preparar dados para heatmap
+        const heatmapData = dados.map(d => {
+            const peso = Math.log(d.qca + 1) / 8;
+            return [d.lat, d.lng, peso];
+        });
+        
+        // Camada de heatmap
+        const heatLayer = L.heatLayer(heatmapData, {
+            radius: 35,
+            blur: 50,
+            maxZoom: 13,
+            max: 1.2,
+            gradient: {
+                0.0: 'blue',
+                0.2: 'cyan',
+                0.4: 'lime',
+                0.6: 'yellow',
+                0.8: 'orange',
+                1.0: 'red'
+            }
+        }).addTo(map);
+        
+        // Camada de círculos
+        const circlesLayer = L.layerGroup();
+        const labelsLayer = L.layerGroup();
+        
+        dados.forEach(d => {
+            const raio = Math.sqrt(d.qca) / 2.5;
+            
+            const circle = L.circle([d.lat, d.lng], {
+                radius: raio * 100,
+                fillColor: d.qca > 20000 ? '#e74c3c' : d.qca > 5000 ? '#f39c12' : '#3498db',
+                color: 'white',
+                weight: 2,
+                opacity: 0.9,
+                fillOpacity: 0.5
+            });
+            
+            circle.bindPopup(`
+                <div style="min-width: 200px;">
+                    <h3 style="margin: 0 0 10px 0; color: #667eea;">${d.cidade}</h3>
+                    <div style="font-size: 13px; line-height: 1.6;">
+                        <strong>Franquia:</strong> ${d.franquia}<br>
+                        <strong>Total de filiados:</strong> ${d.qca.toLocaleString('pt-BR')}<br>
+                        <strong>Raízes de CEP:</strong> ${d.num_ceps}<br>
+                        <strong>AMORSAUDE:</strong> ${d.amorsaude}
+                    </div>
+                </div>
+            `);
+            
+            circle.addTo(circlesLayer);
+            
+            // Rótulo da cidade
+            const label = L.marker([d.lat, d.lng], {
+                icon: L.divIcon({
+                    className: 'city-label',
+                    html: `<div style="
+                        background: rgba(255,255,255,0.9);
+                        padding: 4px 8px;
+                        border-radius: 4px;
+                        font-weight: bold;
+                        font-size: 11px;
+                        color: #333;
+                        white-space: nowrap;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    ">${d.cidade}</div>`,
+                    iconSize: [100, 20],
+                    iconAnchor: [50, -10]
+                })
+            });
+            
+            label.addTo(labelsLayer);
+        });
+        
+        circlesLayer.addTo(map);
+        labelsLayer.addTo(map);
+        
+        // Legenda
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = `
+                <h4>Legenda</h4>
+                <div class="legend-item">
+                    <div class="legend-circle" style="background: #e74c3c;"></div>
+                    <span>> 20.000 filiados</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-circle" style="background: #f39c12;"></div>
+                    <span>5.000 - 20.000</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-circle" style="background: #3498db;"></div>
+                    <span>< 5.000</span>
+                </div>
+            `;
+            return div;
+        };
+        legend.addTo(map);
+        
+        // Controles
+        document.getElementById('toggle-heatmap').addEventListener('click', function() {
+            if (map.hasLayer(heatLayer)) {
+                map.removeLayer(heatLayer);
+                this.classList.remove('active');
+            } else {
+                map.addLayer(heatLayer);
+                this.classList.add('active');
+            }
+        });
+        
+        document.getElementById('toggle-circles').addEventListener('click', function() {
+            if (map.hasLayer(circlesLayer)) {
+                map.removeLayer(circlesLayer);
+                this.classList.remove('active');
+            } else {
+                map.addLayer(circlesLayer);
+                this.classList.add('active');
+            }
+        });
+        
+        document.getElementById('toggle-labels').addEventListener('click', function() {
+            if (map.hasLayer(labelsLayer)) {
+                map.removeLayer(labelsLayer);
+                this.classList.remove('active');
+            } else {
+                map.addLayer(labelsLayer);
+                this.classList.add('active');
+            }
+        });
+    </script>
+</body>
+</html>
